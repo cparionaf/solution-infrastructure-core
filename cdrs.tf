@@ -83,7 +83,6 @@ YAML
   depends_on = [module.eks, module.aws_auth, helm_release.karpenter]
 }
 
-# ClusterIssuer for cert-manager
 resource "kubectl_manifest" "cluster_issuer_prod" {
     yaml_body = <<YAML
 apiVersion: cert-manager.io/v1
@@ -99,12 +98,11 @@ spec:
       name: letsencrypt-prod-account-key
     solvers:
     - dns01:
-        route53:
-          region: ${var.aws_region}
+        route53: {}
       selector:
         dnsZones:
-          - "${var.domain_name}" 
-          - "*.${var.domain_name}" 
+          - "${var.domain_name}"  
+          - "*.${var.domain_name}"  
 YAML
     depends_on = [helm_release.cert_manager]
 }
@@ -121,20 +119,28 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
     alb.ingress.kubernetes.io/healthcheck-path: /login
-    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=3600
     alb.ingress.kubernetes.io/ssl-redirect: '443'
+    
+
+    # alb.ingress.kubernetes.io/cors-allow-origins: 'https://*.${var.domain_name}'
+    # alb.ingress.kubernetes.io/cors-allow-methods: 'GET, POST, OPTIONS'
+    # alb.ingress.kubernetes.io/cors-allow-headers: 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization'
+    # alb.ingress.kubernetes.io/cors-max-age: '86400'
+
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # External Dns
+    external-dns.alpha.kubernetes.io/owner-id: "cluster-${var.aws_region}"
     external-dns.alpha.kubernetes.io/hostname: "*.${var.domain_name}"
+    external-dns.alpha.kubernetes.io/ttl: "60"
 
 spec:
   ingressClassName: alb
   tls: 
   - hosts: 
     - "*.${var.domain_name}"
-    secretName: dns-wildcard-tls
+    secretName: region-dns-wildcard-tls
     
   rules:
-
   - host: grafana-${var.aws_region}.${var.domain_name}
     http:
       paths:
@@ -146,7 +152,7 @@ spec:
             port:
               number: 80
 
-  # - host: prometheus.${var.domain_name}
+  # - host: prometheus-${var.aws_region}.${var.domain_name}
   #   http:
   #     paths:
   #     - path: /
@@ -156,7 +162,8 @@ spec:
   #           name: prometheus-stack-kube-prom-prometheus
   #           port:
   #             number: 9090 
-  # - host: alertmanager.${var.domain_name}
+
+  # - host: alertmanager-${var.aws_region}.${var.domain_name}
   #   http:
   #     paths:
   #     - path: /
@@ -167,5 +174,5 @@ spec:
   #           port:
   #             number: 9093
 YAML
- depends_on = [ helm_release.kube_prometheus_stack ]
+    depends_on = [ helm_release.kube_prometheus_stack ]
 }

@@ -2,7 +2,7 @@ module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.8"
 
-  cluster_name    = var.cluster_name
+  cluster_name    = "${var.cluster_name}-${var.aws_region}"
   cluster_version = var.cluster_version
 
   enable_cluster_creator_admin_permissions = true
@@ -23,11 +23,11 @@ module "eks" {
 
   # Tags para Karpenter
   tags = {
-    "karpenter.sh/discovery" = var.cluster_name
+    "karpenter.sh/discovery" = "${var.cluster_name}-${var.aws_region}"
   }
 
   cluster_security_group_tags = {
-    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+    "kubernetes.io/cluster/${var.cluster_name}-${var.aws_region}" = "owned"
   }
 
   # Managed Node Group
@@ -75,8 +75,8 @@ module "aws_auth" {
 module "karpenter" {
   source = "terraform-aws-modules/eks/aws//modules/karpenter"
   version = "20.29.0"
-  iam_role_name = "karpenter-${var.environment}"
-  cluster_name = var.cluster_name
+  iam_role_name = "karpenter-${var.environment}-${var.aws_region}"
+  cluster_name = "${var.cluster_name}-${var.aws_region}"
   create_pod_identity_association = true
   enable_pod_identity = true
 
@@ -147,7 +147,7 @@ resource "helm_release" "karpenter" {
 module "lb_role" {
   source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
 
-  role_name = "eks-alb-controller-role-${var.environment}"
+  role_name = "eks-alb-controller-role-${var.environment}-${var.aws_region}"
   
   attach_load_balancer_controller_policy = true
 
@@ -202,7 +202,7 @@ resource "helm_release" "metrics_servers" {
 module "cert_manager_irsa_role" {
   source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
 
-  role_name                     = "cert-manager-role-${var.environment}"
+  role_name                     = "cert-manager-role-${var.environment}-${var.aws_region}"
   attach_cert_manager_policy    = true
   cert_manager_hosted_zone_arns = ["arn:aws:route53:::hostedzone/*"]
 
@@ -242,7 +242,7 @@ resource "helm_release" "cert_manager" {
 module "external_dns_role" {
   source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
 
-  role_name = "external-dns-role-${var.environment}"
+  role_name = "external-dns-role-${var.environment}-${var.aws_region}"
   attach_external_dns_policy = true
 
   oidc_providers = {
@@ -311,7 +311,7 @@ resource "helm_release" "external_secrets" {
 module "external_secrets_role" {
   source = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
 
-  role_name = "external-secrets-role-${var.environment}"
+  role_name = "external-secrets-role-${var.environment}-${var.aws_region}"
   attach_external_secrets_policy = true
   external_secrets_secrets_manager_create_permission  = true
 

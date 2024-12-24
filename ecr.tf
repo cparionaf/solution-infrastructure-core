@@ -1,7 +1,7 @@
 module "ecr_security" {
   source  = "terraform-aws-modules/ecr/aws"
 
-  repository_name = "poc-net-${var.environment}"
+  repository_name = "poc-python-${var.environment}"
   
   repository_read_write_access_arns = [
     module.eks.cluster_iam_role_arn,

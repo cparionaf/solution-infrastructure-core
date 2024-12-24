@@ -54,7 +54,7 @@ variable "managed_node_group_name" {
 
 variable "cluster_name" {
   type = string
-  default = "solutions-architecture-moc"
+  default = "sa-moc"
 }
 
 variable "domain_name" {
